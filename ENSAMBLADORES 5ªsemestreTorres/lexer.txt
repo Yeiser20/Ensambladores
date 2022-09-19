@@ -1,0 +1,21 @@
+package analisisensamblador;
+
+import static analisisensamblador.Tokens.*;
+%%
+%class Lexer
+%type Tokens
+espacios=[ ,\t,\r]+
+%{
+    public String lexeme;
+%}
+%%
+
+{espacios} {/*Ignore*/}
+(";"(.)*) {/*Ignore*/}
+("data segment" | "DATA SEGMENT") {lexeme=yytext(); return Pseudoinstruccion;}
+("stack segment" | "STACK SEGMENT") {lexeme=yytext(); return Pseudoinstruccion;}
+("ends") {lexeme=yytext(); return Pseudoinstruccion;}
+("ret") {lexeme=yytext(); return Pseudoinstruccion;}
+
+ . {return ERROR;}
+

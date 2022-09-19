@@ -1,0 +1,854 @@
+package Proyecto;
+import java_cup.runtime.*;
+import java.util.ArrayList;
+
+
+parser code {:
+    int contadorPrograma = 256;
+    int auxiliarContador = 0;
+    int contAccesoMemoria = 0;
+    String constanteMemoria;
+    private Symbol s;
+    ArrayList<String> Etiquetas;
+    ArrayList<Variables> listaVariables = new ArrayList<Variables>();
+    ArrayList<clasificacionLineas> Lineas = new ArrayList<clasificacionLineas>();
+    direccionesMemoria dM = new direccionesMemoria();
+    tablaSimbolos tS = new tablaSimbolos();
+    codigoMaquina codigo = new codigoMaquina();
+    public void agregarVariables(String nombre,String tipo,String valor,String direccion){
+        String tamanio;
+        if(tipo.equals("DB")){
+            tamanio = "BYTE";
+        }else if(tipo.equals("DW")){
+            tamanio = "PALABRA";
+        }else if(tipo.equals("EQU")){
+            tamanio = "PALABRA";
+        }else{
+            tamanio = "";
+        }
+        tS.agregarVariables(nombre,tipo,valor,tamanio,direccion);
+    }
+
+    public void etiquetasEnsambaldor(ArrayList<String> Etiquetas){
+        this.Etiquetas = Etiquetas;
+    }
+
+    private int isNumeric(String numeroCadena){
+        int numero;
+        try{
+            if(numeroCadena.contains("H")){
+                numeroCadena = numeroCadena.replace("H","");
+                numero = Integer.parseInt(numeroCadena,16);
+            }else if(numeroCadena.contains("B")){
+                numeroCadena = numeroCadena.replace("B","");
+                numero = Integer.parseInt(numeroCadena,2);
+            }else{
+                numero = Integer.parseInt(numeroCadena);
+            }
+        }catch(NumberFormatException excepcion){
+            return -1;
+        }
+        return numero;
+    }
+    
+    public int calcularLongitudCadena(String cadena){
+        if(cadena.contains("$")){
+            return cadena.length()-3;
+        }
+        return cadena.length()-2;
+    }
+
+    public String codigoMaquina(String contador, String codicInstruccion){
+        String ceros = "0";
+        for(int i = 0 ; i < (4 - contador.length()) ; i++){
+            ceros += "0";
+        }
+        contador = ceros + contador;
+        return (contador+" "+codicInstruccion);
+    }
+
+:}
+
+
+terminal cbw,cwd,pusha,stosw,lds,push,mov,sub,ja,jnc,jnp,jnl,ax,ah,al,bx,bh,bl,cx,ch,cl,dx,dh,dl,si,di,sp,bp,ss,cs,ds,es;
+terminal coma,doblepunto,parenNA,parenNC,parenCA,parenCC,datasegment,stacksegment,codesegment,ends,db,dw,equ,byteptr;
+terminal wordptr,dup,macro,endm,proc,endp,variable,cadenacomillasdoble,cadenacomillassimples,enteros,noBinarios,noHexadecimales;
+terminal jump,errorEnsamblador,etiquetas,signos,constanteInvalida,variableGrande;
+
+non terminal Inicio,dSegment,stSegment,declaracionVariables,estructuraVariables,tipoVariables,Constantes,estructuraDup;
+non terminal cSegment,Instrucciones,declaracionInstrucciones,erroresSaltos,variablesErrorSaltos;
+non terminal erroresCodeSegment,erroresDataSegment,registrosSegmento,registrospGeneral,accesoMemoria,instruccionPush;
+non terminal registrosHighLow,instruccionSub,instruccionLds,instruccionMov,instruccionesdeSalto,constantesNumericas,errorDSegInstrucciones;
+start with Inicio;
+
+Inicio ::= dSegment stSegment cSegment:valor{:contadorPrograma = 0;:};
+
+dSegment ::= datasegment:valor jump declaracionVariables:value ends:valor1 jump{:
+                                Lineas.add(new clasificacionLineas(valorleft+1,"LINEA: "+(valorleft+1)+" CORRECTA"));
+                                Lineas.add(new clasificacionLineas(valor1left+1,"LINEA: "+(valor1left+1)+" CORRECTA"));
+                                dM.agregarDirecciones((valor1left+1),contadorPrograma);
+                                :};
+
+stSegment ::= stacksegment:valor jump dw estructuraDup:valor1 jump ends:valor2 jump
+                                   {:dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                                    String[] constanteDup = valor1.toString().split(" ");
+                                    int numero = isNumeric(constanteDup[0]);
+                                    if(numero != -1){
+                                        if((numero >= 0) && (numero <= 65536)){
+                                            Lineas.add(new clasificacionLineas(valorleft+1,"LINEA: "+(valorleft+1)+" CORRECTA"));
+                                            Lineas.add(new clasificacionLineas(valor1left+1,"LINEA: "+(valor1left+1)+" CORRECTA"));
+                                            Lineas.add(new clasificacionLineas(valor2left+1,"LINEA: "+(valor2left+1)+" CORRECTA"));
+                                            contadorPrograma = 256;
+                                            dM.agregarDirecciones((valor1left+1),contadorPrograma);
+                                            contadorPrograma += 2*numero;
+                                            dM.agregarDirecciones((valor2left+1),contadorPrograma);
+                                        }else{
+                                            Lineas.add(new clasificacionLineas(valorleft+1,"LINEA: "+(valorleft+1)+" CORRECTA"));
+                                            Lineas.add(new clasificacionLineas(valor1left+1,"ERROR EN LA LINEA: "+(valor1left+1)+" NUMERO FUERA DE RANGO"));
+                                            Lineas.add(new clasificacionLineas(valor2left+1,"LINEA: "+(valor2left+1)+" CORRECTA"));
+                                            dM.agregarDirecciones((valor1left+1),contadorPrograma);
+                                            dM.agregarDirecciones((valor2left+1),contadorPrograma);
+                                        }
+                                    }
+                                    auxiliarContador =  contadorPrograma;
+                                    contadorPrograma = 256;
+                                :}|
+                                stacksegment:valor jump dw error:valor1 jump ends:valor2 jump{:
+                                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                                            Lineas.add(new clasificacionLineas(valorleft+1,"LINEA: "+(valorleft+1)+" CORRECTA"));
+                                            Lineas.add(new clasificacionLineas(valor1left+1,"ERROR EN LA LINEA: "+(valor1left+1)+" MAL DECLARACION DEL DUP EN STACK SEGMENT"));
+                                            Lineas.add(new clasificacionLineas(valor2left+1,"LINEA: "+(valor2left+1)+" CORRECTA"));
+                                            dM.agregarDirecciones((valor1left+1),256);
+                                            dM.agregarDirecciones((valor2left+1),contadorPrograma);
+                                            auxiliarContador =  contadorPrograma;
+                                            contadorPrograma = 256;
+                                :}|
+                                stacksegment:valor jump variable:valor1 estructuraDup jump ends:valor2 jump{:
+                                            contadorPrograma = 0;
+                                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                                            Lineas.add(new clasificacionLineas(valorleft+1,"LINEA: "+(valorleft+1)+" CORRECTA"));
+                                            Lineas.add(new clasificacionLineas(valor1left+1,"ERROR EN LA LINEA: "+(valor1left+1)+" MAL DECLARACION DEL DUP EN STACK SEGMENT"));
+                                            Lineas.add(new clasificacionLineas(valor2left+1,"LINEA: "+(valor2left+1)+" CORRECTA"));
+                                            dM.agregarDirecciones((valor1left+1),256);
+                                            dM.agregarDirecciones((valor2left+1),contadorPrograma);
+                                            auxiliarContador =  contadorPrograma;
+                                            contadorPrograma = 256;
+                                :}|
+                                stacksegment:valor jump estructuraDup:valor1 jump ends:valor2 jump{:
+                                            contadorPrograma = 0;
+                                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                                            Lineas.add(new clasificacionLineas(valorleft+1,"LINEA: "+(valorleft+1)+" CORRECTA"));
+                                            Lineas.add(new clasificacionLineas(valor1left+1,"ERROR EN LA LINEA: "+(valor1left+1)+" MAL DECLARACION DEL DUP EN STACK SEGMENT"));
+                                            Lineas.add(new clasificacionLineas(valor2left+1,"LINEA: "+(valor2left+1)+" CORRECTA"));
+                                            dM.agregarDirecciones((valor1left+1),256);
+                                            dM.agregarDirecciones((valor2left+1),contadorPrograma);
+                                            auxiliarContador = contadorPrograma;
+                                            contadorPrograma = 256;
+                                :};
+
+cSegment ::= codesegment:valor jump Instrucciones:valor1 ends:valor2 jump{:
+                                Lineas.add(new clasificacionLineas(valorleft+1,"LINEA: "+(valorleft+1)+" CORRECTA"));
+                                Lineas.add(new clasificacionLineas(valor2left+1,"LINEA: "+(valor1left+1)+" CORRECTA"));
+                                dM.agregarDirecciones((valorleft+1),auxiliarContador);
+                                dM.agregarDirecciones((valor2left+1),contadorPrograma);
+                                :};
+
+declaracionVariables ::= declaracionVariables estructuraVariables| 
+                        estructuraVariables;
+
+estructuraVariables ::= variable:nombre tipoVariables:tipo Constantes:valor jump
+                        {:dM.agregarDirecciones((nombreleft+1),contadorPrograma);
+                            int numero = isNumeric(valor.toString());
+                            if(numero != -1){
+                                if(tipo.equals("DB")){
+                                    if(numero >= 0 && numero <= 256){ 
+                                        Lineas.add(new clasificacionLineas(nombreleft+1,"LINEA: "+(nombreleft+1)+" CORRECTA")); 
+                                        agregarVariables(nombre.toString(),tipo.toString(),valor.toString(),Integer.toHexString(contadorPrograma));
+                                        contadorPrograma += 1;
+                                    }else{
+                                        Lineas.add(new clasificacionLineas(nombreleft+1,"ERROR EN LA LINEA: "+(nombreleft+1)+" NUMERO FUERA DE RANGO"));
+                                        contadorPrograma += 0;
+                                    }
+                                }else if(tipo.equals("DW") || tipo.equals("EQU")){
+                                    if(tipo.equals("DW")){
+                                        if(numero >= 0 && numero <= 65536){
+                                            agregarVariables(nombre.toString(),tipo.toString(),valor.toString(),Integer.toHexString(contadorPrograma));
+                                            contadorPrograma += 2;
+                                            Lineas.add(new clasificacionLineas(nombreleft+1,"LINEA: "+(nombreleft+1)+" CORRECTA"));
+                                        
+                                        }else{
+                                            Lineas.add(new clasificacionLineas(nombreleft+1,"ERROR EN LA LINEA: "+(nombreleft+1)+" NUMERO FUERA DE RANGO"));
+                                            contadorPrograma += 0;
+                                        }
+                                    }else{
+                                        if(numero >= 0 && numero <= 65536){
+                                            agregarVariables(nombre.toString(),tipo.toString(),valor.toString(),"");
+                                            Lineas.add(new clasificacionLineas(nombreleft+1,"LINEA: "+(nombreleft+1)+" CORRECTA"));
+                                        }else{
+                                            Lineas.add(new clasificacionLineas(nombreleft+1,"ERROR EN LA LINEA: "+(nombreleft+1)+" NUMERO FUERA DE RANGO"));
+                                            contadorPrograma += 0;
+                                        }
+                                    }
+                                }
+                            }else{
+                                int longitud = calcularLongitudCadena(valor.toString());
+                                Lineas.add(new clasificacionLineas(nombreleft+1,"LINEA: "+(nombreleft+1)+" CORRECTA"));
+                                agregarVariables(nombre.toString(),tipo.toString(),valor.toString(),Integer.toHexString(contadorPrograma));
+                                contadorPrograma += longitud;
+                            }
+                        :}| 
+                        variable:nombre tipoVariables:tipo estructuraDup:valor jump
+                        {:dM.agregarDirecciones((nombreleft+1),contadorPrograma);
+                            String[] constanteDup = valor.toString().split(" ");
+                            int numero = isNumeric(constanteDup[0]);
+                            if(numero != -1){
+                                if(tipo.equals("DB")){
+                                    if(numero >= 0 && numero <= 65536){
+                                        agregarVariables(nombre.toString(),tipo.toString(),valor.toString(),Integer.toHexString(contadorPrograma));
+                                        contadorPrograma += numero;
+                                        Lineas.add(new clasificacionLineas(nombreleft+1,"LINEA: "+(nombreleft+1)+" CORRECTA"));     
+                                    }else{
+                                        Lineas.add(new clasificacionLineas(nombreleft+1,"ERROR EN LA LINEA: "+(nombreleft+1)+" NUMERO FUERA DE RANGO"));
+                                        contadorPrograma += 0;
+                                    }
+                                }else if(tipo.equals("DW") || tipo.equals("EQU")){
+                                    if(numero >= 0 && numero <= 65536){
+                                        agregarVariables(nombre.toString(),tipo.toString(),valor.toString(),Integer.toHexString(contadorPrograma));
+                                        contadorPrograma += numero*2;
+                                        Lineas.add(new clasificacionLineas(nombreleft+1,"LINEA: "+(nombreleft+1)+" CORRECTA"));    
+                                    }else{
+                                        Lineas.add(new clasificacionLineas(nombreleft+1,"ERROR EN LA LINEA: "+(nombreleft+1)+" NUMERO FUERA DE RANGO"));
+                                        contadorPrograma += 0;
+                                    }
+                                }
+                            }
+                        :}|
+                        erroresDataSegment:e{:dM.agregarDirecciones((eleft+1),contadorPrograma);contadorPrograma += 0;:};
+
+tipoVariables ::= db:valor{:RESULT = valor;:} | 
+                dw:valor{:RESULT = valor;:} | 
+                equ:valor{:RESULT = valor;:};
+
+Constantes ::= cadenacomillassimples:valor {:RESULT = valor;:}| 
+                cadenacomillasdoble:valor {:RESULT = valor;:}| 
+                noHexadecimales:valor {:RESULT = valor;:}| 
+                noBinarios:valor {:RESULT = valor;:}| 
+                enteros:valor {:RESULT = valor;:};
+
+constantesNumericas ::= noHexadecimales:valor {:RESULT = valor;:}|
+                     noBinarios:valor {:RESULT = valor;:}| 
+                    enteros:valor {:RESULT = valor;:};
+
+estructuraDup ::= Constantes:valor1 dup:valor2 parenNA:valor3 Constantes:valor4 parenNC:valor5{:RESULT = valor1+" "+valor2+" "+valor3+" "+valor4+" "+valor5;:} | 
+                    Constantes dup parenCA Constantes parenCC;
+
+Instrucciones ::= Instrucciones declaracionInstrucciones| 
+                                declaracionInstrucciones;
+
+declaracionInstrucciones ::= 
+                        cbw:valor jump {:
+                        dM.agregarDirecciones((valorleft+1),(contadorPrograma));
+                        Lineas.add(new clasificacionLineas(valorleft+1,"D50A H"));
+                        contadorPrograma += 1;
+                        :}|
+                        cwd:valor jump{:
+                        dM.agregarDirecciones((valorleft+1),(contadorPrograma));
+                        Lineas.add(new clasificacionLineas(valorleft+1,"CE H"));
+                        contadorPrograma += 1;                        
+                        :}|
+                        etiquetas:valor jump{:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        agregarVariables(valor.toString(),"ETIQUETA","",Integer.toHexString(contadorPrograma));
+                        Lineas.add(new clasificacionLineas(valorleft+1,""));
+                        :}|
+                        etiquetas:valor instruccionPush {:agregarVariables(valor.toString(),"ETIQUETA","","NULL");:}|
+                        etiquetas:valor instruccionSub {:agregarVariables(valor.toString(),"ETIQUETA","","NULL");:}|
+                        etiquetas:valor instruccionLds {:agregarVariables(valor.toString(),"ETIQUETA","","NULL");:}|
+                        etiquetas:valor instruccionMov {:agregarVariables(valor.toString(),"ETIQUETA","","NULL");:}|
+                        etiquetas:valor instruccionesdeSalto {:agregarVariables(valor.toString(),"ETIQUETA","","NULL");:}|
+                        stosw:valor jump{:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,"C3 H"));
+                        contadorPrograma +=1;
+                        :}|
+                        pusha:valor jump{:
+                        dM.agregarDirecciones((valorleft+1),(contadorPrograma));
+                        Lineas.add(new clasificacionLineas(valorleft+1,"90 H"));
+                        contadorPrograma +=1;
+                        :}|
+                        instruccionesdeSalto| 
+                        instruccionPush|
+                        instruccionSub|
+                        instruccionLds|
+                        instruccionMov|
+                        erroresCodeSegment:e{:dM.agregarDirecciones((eleft+1),(contadorPrograma));:};
+
+instruccionesdeSalto ::= ja:valor variable:nombreEtiqueta jump
+                        {:if(!(Etiquetas.contains(nombreEtiqueta.toString()))){
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(nombreEtiquetaleft+1,"ERROR EN LA LINEA: "+(nombreEtiquetaleft+1)+" EN EL TEXTO: "+nombreEtiqueta+" NOMBRE DE ETIQUETA NO DEFINIDA "));
+                        }else{
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(nombreEtiquetaleft+1,"00 E3 "+tS.direccionEtiqueta(nombreEtiqueta)+" H"));
+                            contadorPrograma += 4;
+                        }:}|
+                        jnc:valor variable:nombreEtiqueta jump
+                        {:if(!(Etiquetas.contains(nombreEtiqueta.toString()))){
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(nombreEtiquetaleft+1,"ERROR EN LA LINEA: "+(nombreEtiquetaleft+1)+" EN EL TEXTO: "+nombreEtiqueta+" NOMBRE DE ETIQUETA NO DEFINIDA "));
+                        }else{
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(nombreEtiquetaleft+1,"0F 8E "+tS.direccionEtiqueta(nombreEtiqueta)+" H"));
+                            contadorPrograma += 4;
+                        }:}|
+                        jnp:valor variable:nombreEtiqueta jump
+                        {:if(!(Etiquetas.contains(nombreEtiqueta.toString()))){
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(nombreEtiquetaleft+1,"ERROR EN LA LINEA: "+(nombreEtiquetaleft+1)+" EN EL TEXTO: "+nombreEtiqueta+" NOMBRE DE ETIQUETA NO DEFINIDA "));
+                        }else{
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(nombreEtiquetaleft+1,"0F 8E "+tS.direccionEtiqueta(nombreEtiqueta)+" H"));
+                            contadorPrograma += 4;
+                        }:}|  
+                        jnl:valor variable:nombreEtiqueta jump
+                        {:if(!(Etiquetas.contains(nombreEtiqueta.toString()))){
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(nombreEtiquetaleft+1,"ERROR EN LA LINEA: "+(nombreEtiquetaleft+1)+" EN EL TEXTO: "+nombreEtiqueta+" NOMBRE DE ETIQUETA NO DEFINIDA "));
+                        }else{
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(nombreEtiquetaleft+1,"00 E0 "+tS.direccionEtiqueta(nombreEtiqueta)+" H"));
+                            contadorPrograma += 4;
+                        }:}|
+                        ja:valor error jump{:
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" EN EL TEXTO: "+valor+" SE NECESITA EL NOMBRE DE UN LABEL"));
+                        :}|
+                        jnc:valor error jump{:
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" EN EL TEXTO: "+valor+" SE NECESITA EL NOMBRE DE UN LABEL"));
+                        :}|
+                        jnp:valor error jump{:
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" EN EL TEXTO: "+valor+" SE NECESITA EL NOMBRE DE UN LABEL VALIDO"));
+                        :}|
+                        jnl:valor error jump{:
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" EN EL TEXTO: "+valor+" SE NECESITA EL NOMBRE DE UN LABEL"));
+                        :};
+
+instruccionLds ::=      lds registrospGeneral:registro coma variable:valor jump 
+                        {:if(tS.buscarVariableLDS(valor.toString()) == 1){
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("11000101","00",registro.toString(),"110")+" "+tS.direccionVariable(valor)+"H"));
+                            contadorPrograma += 4;
+                        }else{
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" VARIABLE NO EXISTENTE O NO SON VALIDOS LOS PARAMETROS"));
+                        }:}|
+                        lds:valor registrospGeneral:registro coma parenCA accesoMemoria:valorR parenCC jump{:
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        String[] datos = valorR.toString().split(" ");
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("11000101",datos[0],registro.toString(),datos[1])+" "+constanteMemoria+"H"));
+                            contadorPrograma += (2+contAccesoMemoria);
+                        :}|
+                        lds:valor error jump{:
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" PARAMETROS INCORRECTOS PARA LA INSTRUCCION LDS"));
+                        :};
+
+
+instruccionPush ::= push:valor registrospGeneral:v jump{:
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("11111111","11","110",v.toString())+" H"));
+                            contadorPrograma += 2;
+                        :}|
+                        push:valor registrosSegmento:valorR jump{:
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            if(valorR.equals("000")){
+                                Lineas.add(new clasificacionLineas(valorleft+1,"06 H"));
+                            }else if(valorR.equals("001")){
+                                Lineas.add(new clasificacionLineas(valorleft+1,"0E H"));
+                            }else if(valorR.equals("010")){
+                                Lineas.add(new clasificacionLineas(valorleft+1,"16 H"));
+                            }else if(valorR.equals("011")){
+                                Lineas.add(new clasificacionLineas(valorleft+1,"1E H"));
+                            }
+                            contadorPrograma += 2;
+                        :}| 
+                        push variable:valor jump
+                        {:if(tS.buscarVariablePush(valor.toString()) == 1){
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(valorleft+1,"FF 36 "+tS.direccionVariable(valor)+" H"));
+                            contadorPrograma += 2;
+                        }else{
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" VARIABLE NO EXISTENTE O NO TIENE VALOR DE 16 BITS"));
+                        }:}|
+                        push constantesNumericas:valor jump{:
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            int numero = isNumeric(valor.toString());
+                            if(numero <= 255 && numero >= -128){
+                                contadorPrograma += 2;
+                            }else{
+                                contadorPrograma += 3;
+                            }
+                            String Codigo = codigo.addCeros(Integer.toHexString(numero));
+                            String cero = "";
+                            for(int i = 0 ; i < (4 - Codigo.length()) ; i++){
+                                cero += "0";
+                            }
+                            Codigo = cero + Codigo;
+                            Lineas.add(new clasificacionLineas(valorleft+1,"68 "+Codigo+" H"));
+                        :}|
+                        push:valor parenCA accesoMemoria:valorR parenCC jump{:
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            String[] datos = valorR.toString().split(" ");
+                            Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("11111111",datos[0],"110",datos[1])+" "+constanteMemoria+"H"));
+                            contadorPrograma += (2+(contAccesoMemoria));
+                        :}|
+                        push:valor registrosHighLow jump{:
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" EL PARAMETRO NO TIENE EL TAMAÑO DE 16 BITS"));
+                        :}|
+                        push:valor error jump{:
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" PUSH REQUIERE UN PARAMETRO (REGISTRO , REGISTROS DE SEGMENTO, MEMORIA O INMEDIATO)"));
+                        :};
+
+instruccionSub ::= sub:valor registrospGeneral:registro coma parenCA accesoMemoria:valorR parenCC jump{:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);    
+                        String[] datos = valorR.toString().split(" ");
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10000001",datos[0],registro.toString(),datos[1])+" "+constanteMemoria+"H"));
+                        contadorPrograma += (2+(contAccesoMemoria));
+                    :} | 
+                    sub registrospGeneral:registro coma variable:valor jump 
+                    {:if(tS.buscarVariableSub(valor.toString(),16) == 1){
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("00101011","00",registro.toString(),"110")+" "+tS.direccionVariable(valor)+"H"));
+                        contadorPrograma += (2);
+                    }else{
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,"ERROR: "+(valorleft+1)+" EL VALOR DE LA VARIABLE NO ES DE 16 BITS"));
+                    }:}|
+                    sub registrosHighLow:registro coma variable:valor jump 
+                    {:if(tS.buscarVariableSub(valor.toString(),8) == 2){
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("00101010","00",registro.toString(),"110")+" "+tS.direccionVariable(valor)+"H"));
+                        contadorPrograma += (4);
+                    }else{
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,"ERROR: "+(valorleft+1)+" EL VALOR DE LA VARIABLE NO ES DE 8 BITS"));
+                    }:}|
+                    sub:valor registrosHighLow:registro coma parenCA accesoMemoria:valorR parenCC jump{:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        String[] datos = valorR.toString().split(" ");
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10000000",datos[0],registro.toString(),datos[1])+" "+constanteMemoria+"H"));
+                        contadorPrograma += (2+(contAccesoMemoria));
+                    :}|
+                    sub variable:valor coma registrospGeneral:registros jump
+                    {:if(tS.buscarVariableSub(valor.toString(),16) == 1){
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("00101001","00",registros.toString(),"110")+" "+tS.direccionVariable(valor)+"H"));
+                        contadorPrograma += (4);
+                    }else{
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,"ERROR: "+(valorleft+1)+" EL VALOR DE LA VARIABLE NO ES DE 16 BITS"));
+                    }:}|
+                    sub variable:valor coma registrosHighLow:registros jump 
+                    {:if(tS.buscarVariableSub(valor.toString(),8) == 2){
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("00101000","00",registros.toString(),"110")+" "+tS.direccionVariable(valor)+"H"));
+                        contadorPrograma += (4);
+                    }else{
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,"ERROR: "+(valorleft+1)+" EL VALOR DE LA VARIABLE NO ES DE 8 BITS"));
+                    }:}|
+                    sub:valor parenCA accesoMemoria:valorR parenCC coma registrospGeneral:registro jump{:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        String[] datos = valorR.toString().split(" ");
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("00101001",datos[0],registro.toString(),datos[1])+" "+constanteMemoria+"H"));
+                        contadorPrograma += (2+(contAccesoMemoria));
+                    :}|
+                    sub:valor parenCA accesoMemoria:valorR parenCC coma registrosHighLow:registro jump {:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        String[] datos = valorR.toString().split(" ");
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("00101000",datos[0],registro.toString(),datos[1])+" "+constanteMemoria+"H"));
+                        contadorPrograma += (2+(contAccesoMemoria));
+                    :}|
+                    sub:valor registrospGeneral:registro1 coma registrospGeneral:registro2 jump {:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("00101001","11",registro2.toString(),registro1.toString())+" H"));
+                        contadorPrograma += (2);
+                    :}|
+                    sub:valor registrosHighLow:registro1 coma registrosHighLow:registro2 jump {:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("00101000","11",registro2.toString(),registro1.toString())+" H"));
+                        contadorPrograma += (2);
+                    :}|
+                    sub variable:valor coma constantesNumericas:valorNumero jump 
+                    {:if(tS.buscarVariableSub(valor.toString(),0) == 1){
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        int numero = isNumeric(valorNumero.toString());
+                        if(numero >= -127 && numero <= 255){
+                            contadorPrograma += 5;
+                            Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10000000","00","101","110")+" "+codigo.addCeros(Integer.toHexString(numero))+" "+tS.direccionVariable(valor)+" H"));
+                        }else{
+                            Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10000001","00","101","110")+" "+codigo.addCeros(Integer.toHexString(numero))+" "+tS.direccionVariable(valor)+" H"));
+                            contadorPrograma += 6;
+                        }
+                    }else{
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,"ERROR: "+(valorleft+1)+" ESTA VARIABLE NO A SIDO DECLARADA O TIENE UN NOMBRE NO VALIDO"));
+                    }:}|
+                    sub:valor parenCA accesoMemoria:valorR parenCC coma constantesNumericas:valorNumero jump{:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        int numero = isNumeric(valorNumero.toString());
+                        String[] datos = valorR.toString().split(" ");
+                        if(numero >= -127 && numero <= 255){
+                            contadorPrograma += (3+contAccesoMemoria);
+                        }else{
+                            contadorPrograma += (4+contAccesoMemoria);
+                        }
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10000000",datos[0],"101",datos[1])+" "+constanteMemoria+" "+codigo.addCeros(Integer.toHexString(numero))+"H"));
+                    :}|
+                    sub:valor registrospGeneral:registro coma constantesNumericas:valorNumero jump{:
+                        int numero = isNumeric(valorNumero.toString());
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10000001","11","101",registro.toString())+" "+codigo.addCeros(Integer.toHexString(numero))+" H"));
+                        contadorPrograma += (4);   
+                    :}|
+                    sub:valor registrosHighLow:registro coma constantesNumericas:numero jump
+                    {:int numeroEntero = isNumeric(numero.toString());
+                    if(numeroEntero != -1){
+                        if(numeroEntero > 256){
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" NUMERO FUERA DE RANGO")); 
+                        }else{
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10000000","11","101",registro.toString())+" "+codigo.addCeros(Integer.toHexString(numeroEntero))+" H"));
+                            contadorPrograma += (3); 
+                        }
+                    }else{
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,""));
+                        contadorPrograma += (3); 
+                    }:}|
+                    sub:valor error jump{:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" PARAMETRO INCORRECTOS PARA LA INSTRCUCCION SUB"));
+                    :};
+
+instruccionMov ::= mov:valor registrospGeneral:registro coma parenCA accesoMemoria:valorR parenCC jump{:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        String[] datos = valorR.toString().split(" ");
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10001011",datos[0],registro.toString(),datos[1])+" "+constanteMemoria+"H"));
+                        contadorPrograma += (2+(contAccesoMemoria));
+                    :} | 
+                    mov registrospGeneral:registro coma variable:valor jump 
+                    {:if(tS.buscarVariableSub(valor.toString(),16) == 1){
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10001011","00",registro.toString(),"110")+" "+tS.direccionVariable(valor)+"H"));
+                        contadorPrograma += 4;
+                    }else{
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,"ERROR: "+(valorleft+1)+" EL VALOR DE LA VARIABLE NO ES DE 16 BITS"));
+                    }:}|
+                    mov registrosHighLow:registro coma variable:valor jump 
+                    {:if(tS.buscarVariableSub(valor.toString(),8) == 2){
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10001010","00",registro.toString(),"110")+" "+tS.direccionVariable(valor)+"H"));
+                        contadorPrograma += 4;
+                    }else{
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,"ERROR: "+(valorleft+1)+" EL VALOR DE LA VARIABLE NO ES DE 8 BITS"));
+                    }:}|
+                    mov:valor registrosHighLow:registro coma parenCA accesoMemoria:valorR parenCC jump{:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        String[] datos = valorR.toString().split(" ");
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10001010",datos[0],registro.toString(),datos[1])+" "+constanteMemoria+"H"));
+                        contadorPrograma += (2+(contAccesoMemoria));
+                    :}|
+                    mov variable:valor coma registrospGeneral:registro jump
+                    {:if(tS.buscarVariableSub(valor.toString(),16) == 1){
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10001001","00",registro.toString(),"110")+" "+tS.direccionVariable(valor)+"H"));
+                        contadorPrograma += 4;
+                    }else{
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,"ERROR: "+(valorleft+1)+" EL VALOR DE LA VARIABLE NO ES DE 16 BITS"));
+                    }:}|
+                    mov variable:valor coma registrosHighLow:registros jump 
+                    {:if(tS.buscarVariableSub(valor.toString(),8) == 2){
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10001000","00",registros.toString(),"110")+" "+tS.direccionVariable(valor)+"H"));
+                        contadorPrograma += 4;
+                    }else{
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,"ERROR: "+(valorleft+1)+" EL VALOR DE LA VARIABLE NO ES DE 8 BITS"));
+                    }:}|
+                    mov:valor parenCA accesoMemoria:valorR parenCC coma registrospGeneral:registro jump{:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        String[] datos = valorR.toString().split(" ");
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10001000",datos[0],registro.toString(),datos[1])+" "+constanteMemoria+"H"));
+                        contadorPrograma += (2+(contAccesoMemoria));
+                    :}|
+                    mov:valor wordptr parenCA accesoMemoria:valorR parenCC coma registrospGeneral:registro jump{:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        String[] datos = valorR.toString().split(" ");
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10001001",datos[0],registro.toString(),datos[1])+" "+constanteMemoria+"H"));
+                        contadorPrograma += (2+(contAccesoMemoria));
+                    :}|
+                    mov:valor byteptr parenCA accesoMemoria:valorR parenCC coma registrosHighLow:registro jump{:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        String[] datos = valorR.toString().split(" ");
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10001000",datos[0],registro.toString(),datos[1])+" "+constanteMemoria+"H"));
+                        contadorPrograma += (2+(contAccesoMemoria));
+                    :}|
+                    mov:valor parenCA accesoMemoria:valorR parenCC coma registrosHighLow:registro jump {:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        String[] datos = valorR.toString().split(" ");
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10001000",datos[0],registro.toString(),datos[1])+" "+constanteMemoria+"H"));
+                        contadorPrograma += (2+(contAccesoMemoria));
+                    :}|
+                    mov:valor registrospGeneral:registro1 coma registrospGeneral:registro2 jump {:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10001001","11",registro2.toString(),registro1.toString())+" H"));
+                        contadorPrograma += 2;
+                    :}|
+                    mov:valor registrosHighLow:registro1 coma registrosHighLow:registro2 jump {:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10001000","11",registro2.toString(),registro1.toString())+" H"));
+                        contadorPrograma += 2;
+                    :}|
+                    mov variable:valor coma constantesNumericas:valorNumerico jump 
+                    {:if(tS.buscarVariableSub(valor.toString(),0) == 1){
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        int numero = isNumeric(valorNumerico.toString());
+                        if(numero >= -127 && numero <= 255){
+                            Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("11000110","00","000","110")+" "+codigo.addCeros(Integer.toHexString(numero))+" H"));
+                            contadorPrograma += 5;
+                        }else{
+                            Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("11000111","00","000","110")+" "+codigo.addCeros(Integer.toHexString(numero))+" H"));
+                            contadorPrograma += 6;
+                        }
+                    }else{
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,"ERROR: "+(valorleft+1)+" ESTA VARIABLE NO A SIDO DECLARADA O TIENE UN NOMBRE NO VALIDO"));
+                    }:}|
+                    mov:valor parenCA accesoMemoria:valorR parenCC coma constantesNumericas:Numero jump{:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        int numero = isNumeric(Numero.toString());
+                        String[] datos = valorR.toString().split(" ");
+                        if(numero >= -127 && numero <= 255){
+                            contadorPrograma += (3+(contAccesoMemoria));
+                        }else{
+                            contadorPrograma += (4+(contAccesoMemoria));
+                        }
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("11000110",datos[0],"000",datos[1])+" "+constanteMemoria+" "+codigo.addCeros(Integer.toHexString(numero))+"H"));
+                    :}|
+                    mov:valor registrospGeneral:registro coma constantesNumericas:valorNumerico jump{:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        int numero = isNumeric(valorNumerico.toString());
+                        if(numero >= -127 && numero <= 255){
+                            Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("11000111","11","000",registro.toString())+" "+codigo.addCeros(Integer.toHexString(numero))+"H"));
+                            contadorPrograma += (3);
+                        }else{
+                            Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("11000111","11","000",registro.toString())+" "+codigo.addCeros(Integer.toHexString(numero))+"H"));
+                            contadorPrograma += (4);
+                        }
+                    :}|  
+                    mov:valor registrospGeneral:registro coma wordptr parenCA accesoMemoria:valorR parenCC jump{:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10001011","00","000",registro.toString())+" "+constanteMemoria+"H"));
+                        contadorPrograma += (2);
+                    :}|
+                    mov:valor registrosHighLow:registro coma constantesNumericas:numero jump
+                    {:int numeroEntero = isNumeric(numero.toString());
+                    if(numeroEntero != -1){
+                        if(numeroEntero > 256){
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" NUMERO FUERA DE RANGO"));
+                        }else{
+                            dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                            Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("11000110","11","000",registro.toString())+" "+codigo.addCeros(Integer.toHexString(numeroEntero))+"H"));
+                            contadorPrograma += (3);
+                        }
+                    }else{
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,""));
+                    }:}|
+                    mov:valor registrospGeneral:registro1 coma registrosSegmento:registro2 jump{:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10001100","11",registro2.toString(),registro1.toString())+" H"));
+                        contadorPrograma += 2;
+                    :}|
+                    mov:valor registrosSegmento:registro1 coma registrospGeneral:registro2 jump{:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,codigo.convertirHexadecimal("10001110","11",registro2.toString(),registro1.toString())+" H"));
+                        contadorPrograma += 2;
+                    :}|
+                    mov:valor error jump{:
+                        dM.agregarDirecciones((valorleft+1),contadorPrograma);
+                        Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" PARAMETROS O MAL DECLARACION DE LA INSTRUCCION MOV"));
+                    :};
+
+registrospGeneral ::= ax:valor{:RESULT = "000";:} | cx:valor{:RESULT = "001";:} |
+                    dx:valor{:RESULT = "010";:} | bx:valor{:RESULT = "011";:} |
+                    sp:valor{:RESULT = "100";:} | bp:valor{:RESULT = "101";:} | 
+                    si:valor{:RESULT = "110";:} | di:valor{:RESULT = "111";:};
+
+registrosSegmento ::= cs:valor {:RESULT = "001";:} | ss:valor {:RESULT = "010";:} | 
+                    ds :valor {:RESULT = "011";:} | es:valor {:RESULT = "000";:};
+
+registrosHighLow ::= ah:v{:RESULT = "100";:}|bh:v{:RESULT = "111";:}|
+                ch:v{:RESULT = "101";:}|dh:v{:RESULT = "110";:}|
+                al:v{:RESULT = "000";:}|bl:v{:RESULT = "011";:}|
+                cl:v{:RESULT = "001";:}|dl:v{:RESULT = "010";:};
+
+accesoMemoria ::= bx:valor{:contAccesoMemoria = 0; constanteMemoria = " "; RESULT = "00 111";:} | 
+                si:valor{:contAccesoMemoria = 0; constanteMemoria = " "; RESULT = "00 100";:} | 
+                di:valor{:contAccesoMemoria = 0; constanteMemoria = " "; RESULT = "00 101";:} | 
+                bx signos constantesNumericas:valor{:
+                    int numero = isNumeric(valor.toString());
+                    if(numero <= 255 && numero >= -128){
+                        contAccesoMemoria = 1;
+                        RESULT = "01 111";
+                    }else{
+                        contAccesoMemoria = 2;
+                        RESULT = "10 111";
+                    }
+                    constanteMemoria = codigo.addCeros(Integer.toHexString(numero));
+                :} |
+                si signos constantesNumericas:valor{:
+                    int numero = isNumeric(valor.toString());
+                    if(numero <= 255 && numero >= -128){
+                        contAccesoMemoria = 1;
+                        RESULT = "01 100";
+                    }else{
+                        contAccesoMemoria = 2;
+                        RESULT = "10 100";
+                    }
+                    constanteMemoria = codigo.addCeros(Integer.toHexString(numero));
+                :}  |
+                bp signos constantesNumericas:valor{:
+                    int numero = isNumeric(valor.toString());
+                    if(numero <= 255 && numero >= -128){
+                        contAccesoMemoria = 1;
+                        RESULT = "01 110";
+                    }else{
+                        contAccesoMemoria = 2;
+                        RESULT = "10 110";
+                    }
+                    constanteMemoria = codigo.addCeros(Integer.toHexString(numero));
+                :}  |
+                di signos constantesNumericas:valor{:
+                    int numero = isNumeric(valor.toString());
+                    if(numero <= 255 && numero >= -128){
+                        contAccesoMemoria = 1;
+                        RESULT = "01 101";
+                    }else{
+                        contAccesoMemoria = 2;
+                        RESULT = "10 101";
+                    }
+                    constanteMemoria = codigo.addCeros(Integer.toHexString(numero));
+                :}  | 
+                bx signos si:valor{:contAccesoMemoria = 0; constanteMemoria = " "; RESULT = "00 000";:} | 
+                bx signos di:valor{:contAccesoMemoria = 0; constanteMemoria = " "; RESULT = "00 001";:} | 
+                bp signos si:valor{:contAccesoMemoria = 0; constanteMemoria = " "; RESULT = "00 010";:} | 
+                bp signos di:valor{:contAccesoMemoria = 0; constanteMemoria = " "; RESULT = "00 011";:} | 
+                bx signos si signos constantesNumericas:valor{:
+                    int numero = isNumeric(valor.toString());
+                    if(numero <= 255 && numero >= -128){
+                        contAccesoMemoria = 1;
+                        RESULT = "01 000";
+                    }else{
+                        contAccesoMemoria = 2;
+                        RESULT = "10 000";
+                    }        
+                    constanteMemoria = codigo.addCeros(Integer.toHexString(numero));       
+                :}|
+                bx signos di signos constantesNumericas:valor{:
+                    int numero = isNumeric(valor.toString());
+                    if(numero <= 255 && numero >= -128){
+                        contAccesoMemoria = 1;
+                        RESULT = "01 001";
+                    }else{
+                        contAccesoMemoria = 2;
+                        RESULT = "10 001";
+                    }
+                    constanteMemoria = codigo.addCeros(Integer.toHexString(numero));
+                :}|
+                bp signos si signos constantesNumericas:valor{:
+                    int numero = isNumeric(valor.toString());
+                    if(numero <= 255 && numero >= -128){
+                        contAccesoMemoria = 1;
+                        RESULT = "01 010";
+                    }else{
+                        contAccesoMemoria = 2;
+                        RESULT = "10 010";
+                    }
+                    constanteMemoria = codigo.addCeros(Integer.toHexString(numero));
+                :}|
+                bp signos di signos constantesNumericas:valor{:
+                    int numero = isNumeric(valor.toString());
+                    if(numero <= 255 && numero >= -128){
+                        contAccesoMemoria = 1;
+                        RESULT = "01 011";
+                    }else{
+                        contAccesoMemoria = 2;
+                        RESULT = "10 011";;
+                    }
+                    constanteMemoria = codigo.addCeros(Integer.toHexString(numero));
+                :}|
+                constantesNumericas:valor{:
+                    int numero = isNumeric(valor.toString());
+                    if(numero <= 255 && numero >= -128){
+                        RESULT = 1;
+                    }else{
+                        RESULT = 2;
+                    }
+                :};
+
+erroresSaltos ::=  erroresSaltos variablesErrorSaltos | variablesErrorSaltos;
+
+variablesErrorSaltos ::= wordptr|macro|endm|proc|endp|Constantes|ax|ah|al|bx|bh|bl|cx|ch
+                        |cl|dx|dh|dl|si|di|sp|bp|ss|cs|ds|es| 
+                        estructuraDup | variable doblepunto |mov|coma;
+
+
+erroresCodeSegment ::=  errorEnsamblador jump|
+                        error jump|
+                        variable:valor jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" NOMBRE DE ETIQUETA NO VALIDA O INSTRUCCION MAL DECLARADA"));:};
+
+errorDSegInstrucciones ::=  registrosHighLow | registrospGeneral | registrosSegmento |
+                        cbw | cwd | pusha | stosw | lds | push | mov | sub | ja | jnc | jnp | jnl;
+
+erroresDataSegment ::=  variable tipoVariables errorEnsamblador jump|
+                        constanteInvalida:valor tipoVariables Constantes jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" NOMBRE DE VARIABLE INVALIDO"));:}|
+                        constanteInvalida:valor tipoVariables estructuraDup jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" NOMBRE DE VARIABLE INVALIDO"));:}|
+                        variable tipoVariables:valor jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" FALTA ASIGNAR UNA CONSTANTE"));:}|
+                        variable Constantes:valor jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" NO SE HA DECLARADO EL TIPO DE VARIABLE(DW,EQU,ETC)"));:}|
+                        variable estructuraDup:valor jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" NO SE HA DECLARADO EL TIPO DE VARIABLE(DW,EQU,ETC)"));:}|
+                        variableGrande tipoVariables estructuraDup:valor jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" VARIABLE CON NOMBRE MUY GRANDE"));:}|
+                        variableGrande tipoVariables Constantes:valor jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" VARIABLE CON NOMBRE MUY GRANDE"));:}|
+                        variableGrande tipoVariables:valor jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" VARIABLE CON NOMBRE MUY GRANDE Y CONSTANTE NULA"));:}|
+                        tipoVariables Constantes:valor jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" NOMBRE DE VARIABLE NO DEFINIDA"));:}|
+                        tipoVariables estructuraDup:valor jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" NOMBRE DE VARIABLE NO DEFINIDA"));:}|
+                        tipoVariables variable Constantes:valor jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" ORDEN INCORRECTO PARA DECLARAR LA VARIABLE"));:}|
+                        errorDSegInstrucciones:valor tipoVariables Constantes jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" EL NOMBRE DE LA VARIABLE ES UNA PLABRA RESERVADA (REGISTRO,INSTRUCCION,ETC)"));:}|
+                        errorDSegInstrucciones:valor tipoVariables estructuraDup jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" EL NOMBRE DE LA VARIABLE ES UNA PLABRA RESERVADA (REGISTRO,INSTRUCCION,ETC)"));:}|
+                        variable:valor tipoVariables errorDSegInstrucciones jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" ASIGNACION NO VALIDA"));:}|
+                        constanteInvalida tipoVariables:valor jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" CONSTANTE NULA Y NOMBRE DE VARIABLE NO VALIDA"));:}|
+                        tipoVariables:valor errorEnsamblador jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" NOMBRE DE VARIABLE NULA Y CONSTANTE NO VALIDA"));:}|
+                        mov:valor parenCA accesoMemoria parenCC coma registrosSegmento jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" NO SE ADMITE MEMORIA Y REGISTRO DE SEGMENTO"));:}|
+                        mov variable:valor coma registrosSegmento jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR: "+(valorleft+1)+" NO SE ADMITE MEMORIA Y REGISTRO DE SEGMENTO"));:}|
+                        mov registrosSegmento coma variable:valor jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR: "+(valorleft+1)+" PARAMETROS INCORRECTOS PARA LA INSTRUCCION MOV"));:}|
+                        mov:valor registrosSegmento coma parenCA accesoMemoria parenCC jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" PARAMETROS INCORRECTOS DE LA INSTRUCCION MOV"));:}|
+                        variable:valor jump {:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" NOMBRE DE ETIQUETA NO VALIDA O INSTRUCCION MAL DECLARADA"));:}|
+                        variable:valor error Constantes jump {:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" TIPO DE VARIABLE NO VALIDA"));:}| 
+                        variable:valor error estructuraDup jump {:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" TIPO DE VARIABLE NO VALIDA"));:}| 
+                        error:valor tipoVariables Constantes jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" MAL DELCARACION DE VARIABLE"));:}|
+                        error:valor tipoVariables variable jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" MAL DELCARACION DE VARIABLE"));:}|
+                        dw error:valor jump {:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" MAL DELCARACION DE VARIABLE"));:}|
+                        Constantes:valor tipoVariables variable jump{:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" MAL DELCARACION DE VARIABLE"));:}|
+                        error:valor jump {:Lineas.add(new clasificacionLineas(valorleft+1,"ERROR EN LA LINEA: "+(valorleft+1)+" MAL DECLARACION DE VARIABLE"));:};

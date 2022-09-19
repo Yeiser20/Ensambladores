@@ -1,0 +1,39 @@
+package analisisensamblador;
+
+import java_cup.runtime.Symbol;
+
+parser code
+{:
+    private Symbol s;
+    
+    public void syntax_error(Symbol s){
+        this.s = s;
+    }
+
+    public Symbol getS(){
+        return this.s;
+}
+:};
+
+terminal 
+    IIO,
+    IIE,
+    Instruccion,
+    Instruccion_0,
+    Instruccion_E,
+    Simbolo,
+    NoIdentificado,
+    ERROR;
+
+non terminal INICIO, SENTENCIA ;
+
+start with INICIO;
+
+INICIO ::= 
+    Instruccion_0
+;
+
+SENTENCIA ::= 
+    Instruccion_E | Simbolo
+;
+

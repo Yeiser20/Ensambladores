@@ -1,0 +1,184 @@
+EMU8086 GENERATED LISTING. MACHINE CODE <- SOURCE.
+ 
+noname.exe -- emu8086 assembler version: 4.08  
+ 
+[ 28/02/2022  --  11:15:30 a. m. ] 
+ 
+===================================================================================================
+[LINE]     LOC: MACHINE CODE                          SOURCE
+===================================================================================================
+ 
+[   1]        :                                       DATOS SEGMENT PARA PUBLIC 'DATA'
+[   2]        :                                       
+[   3]    0000: 00 00 00 00 00 00 00 00               RESULT      DB  8  DUP (0)
+[   4]    0008: 10 00 03 00 02 00 07 00 2D 00 02 00   NUM         DW  16,3,2,7,45,2,87,36,56,12
+                57 00 24 00 38 00 0C 00             
+[   5]    001C: 00 00 00 00 00 00 00 00 00 00 00 00   PARESA       DW  0,0,0,0,0,0,0,0,0,0
+                00 00 00 00 00 00 00 00             
+[   6]    0030: 00 00 00 00 00 00 00 00 00 00 00 00   IMPARESA     DW  0,0,0,0,0,0,0,0,0,0
+                00 00 00 00 00 00 00 00             
+[   7]        :                                       
+[   8]        :                                       DATOS       ENDS
+[   9]        :                                       
+[  10]        :                                       
+[  11]        :                                       PILA SEGMENT PARA STACK 'STACK'
+[  12]    0050: 53 54 41 43 4B 53 54 41 43 4B 53 54   DB      64     DUP('STACK')
+                41 43 4B 53 54 41 43 4B 53 54 41 43 
+                4B 53 54 41 43 4B 53 54 41 43 4B 53 
+                54 41 43 4B 53 54 41 43 4B 53 54 41 
+                43 4B 53 54 41 43 4B 53 54 41 43 4B 
+                53 54 41 43 4B 53 54 41 43 4B 53 54 
+                41 43 4B 53 54 41 43 4B 53 54 41 43 
+                4B 53 54 41 43 4B 53 54 41 43 4B 53 
+                54 41 43 4B 53 54 41 43 4B 53 54 41 
+                43 4B 53 54 41 43 4B 53 54 41 43 4B 
+                53 54 41 43 4B 53 54 41 43 4B 53 54 
+                41 43 4B 53 54 41 43 4B 53 54 41 43 
+                4B 53 54 41 43 4B 53 54 41 43 4B 53 
+                54 41 43 4B 53 54 41 43 4B 53 54 41 
+                43 4B 53 54 41 43 4B 53 54 41 43 4B 
+                53 54 41 43 4B 53 54 41 43 4B 53 54 
+                41 43 4B 53 54 41 43 4B 53 54 41 43 
+                4B 53 54 41 43 4B 53 54 41 43 4B 53 
+                54 41 43 4B 53 54 41 43 4B 53 54 41 
+                43 4B 53 54 41 43 4B 53 54 41 43 4B 
+                53 54 41 43 4B 53 54 41 43 4B 53 54 
+                41 43 4B 53 54 41 43 4B 53 54 41 43 
+                4B 53 54 41 43 4B 53 54 41 43 4B 53 
+                54 41 43 4B 53 54 41 43 4B 53 54 41 
+                43 4B 53 54 41 43 4B 53 54 41 43 4B 
+                53 54 41 43 4B 53 54 41 43 4B 53 54 
+                41 43 4B 53 54 41 43 4B             
+[  13]        :                                       
+[  14]        :                                       PILA ENDS
+[  15]        :                                       
+[  16]        :                                       CODIGO SEGMENT PARA PUBLIC 'CODE'
+[  17]    0190:                                       INICIO PROC FAR
+[  18]        :                                       
+[  19]        :                                       ASSUME CS:CODIGO,DS:DATOS,PILA:STACK
+[  20]    0190: 1E                                    PUSH   DS
+[  21]    0191: B8 00 00                              MOV    AX,0
+[  22]    0194: 50                                    PUSH   AX
+[  23]        :                                       
+[  24]    0195: B8 00 00                              MOV    AX, DATOS
+[  25]    0198: 8E D8                                 MOV    DS,AX
+[  26]    019A: 8E C0                                 MOV    ES,AX
+[  27]    019C: BF 12 00                              MOV     DI,18
+[  28]        :                                       
+[  29]        :                                       
+[  30]        :                                       
+[  31]        :                                       
+[  32]        :                                       
+[  33]        :                                       ;INICIALIZAMOS EL CONTADOR EN 7(NUMERO DE PASADAS DEL CICLO)
+[  34]        :                                       
+[  35]        :                                       
+[  36]        :                                       ;PROCEDIMIENTO PARA REALIZAR LOS CALCULOS;
+[  37]    019F:                                       REPETIR10:
+[  38]    019F: 8B 45 08                              MOV     AX,NUM[DI]                                  ;CARGAMOS EN AX EL NUMERO A CONVERTIR
+[  39]    01A2: B3 02                                 MOV     BL,2                                        ;CARGAMOS EN BL LA BASE A LA QUE SE CONVERTIRA
+[  40]    01A4: B9 07 00                              MOV     CX,7
+[  41]    01A7: BE 07 00                              MOV     SI,7
+[  42]    01AA: 8B 55 08                              MOV     DX, NUM[DI]
+[  43]    01AD: 83 FA 00                              CMP     DX,0
+[  44]    01B0: 74 16                                 JZ      IMP_RESULT0
+[  45]        :                                       
+[  46]    01B2: 8B 55 08                              MOV     DX, NUM[DI]                                 ;SI EL NUMERO A CONVERTIR ES 1
+[  47]    01B5: 83 FA 01                              CMP     DX,1
+[  48]    01B8: 74 11                                 JZ      IMP_RESULT1
+[  49]    01BA:                                       CALCULO:
+[  50]    01BA: F6 F3                                 DIV     BL                                          ;SE DIVIDE AX ENTRE BL
+[  51]        :                                       ;SE GUARDA EN AL EL COCIENTE Y EN AH EL RESIDUO
+[  52]    01BC: 88 24                                 MOV     RESULT[SI],AH
+[  53]        :                                       
+[  54]    01BE:                                       SEGUIR:                                                 ;GUARDAMOS EL RESIDUO EN EL ARREGLO RESULT
+[  55]    01BE: 4E                                    DEC     SI                                          ;DECREMENTAMOS EL INDICE DEL ARREGLO
+[  56]    01BF: 25 FF 00                              AND     AX,0X00FF                                   ;BORRAMOS AH DE AX (SE BORRA EL ULTIMO RESIDUO)
+[  57]    01C2: 3C 02                                 CMP     AL,2                                        ;DIVISION ENTRE 2
+[  58]    01C4: 7C 05                                 JL      IMP_RESULT1
+[  59]    01C6: E2 F2                                 LOOP    CALCULO                                     ;SE REINCIA EL PROCESO
+[  60]        :                                       
+[  61]    01C8:                                       IMP_RESULT0:
+[  62]        :                                       
+[  63]    01C8: C6 04 00                              MOV     RESULT[SI],0                                ;COMO EL COCIENTE FUE MENOR QUE LA BASE 2, ENTONCES EL BIT
+[  64]        :                                       
+[  65]    01CB:                                       IMP_RESULT1:
+[  66]    01CB: C6 04 01                              MOV     RESULT[SI],1
+[  67]        :                                       
+[  68]    01CE: 80 3E 07 00 00                        CMP     RESULT[7],0
+[  69]    01D3: 74 07                                 JZ      PARES
+[  70]    01D5: 80 3E 07 00 01                        CMP     RESULT[7],1
+[  71]    01DA: 74 08                                 JZ      IMPARES
+[  72]    01DC:                                       PARES:
+[  73]    01DC: 8B 4D 08                              MOV     CX,NUM[DI]
+[  74]    01DF: 89 4D 1C                              MOV     PARESA[DI],CX
+[  75]    01E2: EB 08                                 JMP     SALIR
+[  76]        :                                       
+[  77]    01E4:                                       IMPARES:
+[  78]    01E4: 8B 4D 08                              MOV     CX,NUM[DI]
+[  79]    01E7: 89 4D 30                              MOV     IMPARESA[DI],CX
+[  80]    01EA: EB 00                                 JMP     SALIR
+[  81]        :                                       
+[  82]    01EC:                                       SALIR:
+[  83]    01EC: 4F                                    DEC     DI
+[  84]    01ED: 4F                                    DEC     DI
+[  85]    01EE: B9 07 00                              MOV     CX,7
+[  86]    01F1: BE 07 00                              MOV     SI,7
+[  87]    01F4:                                       LIMPIAR:
+[  88]    01F4: C6 04 00                              MOV     RESULT[SI],0
+[  89]    01F7: 4E                                    DEC     SI
+[  90]    01F8: 83 FE 00                              CMP     SI,0
+[  91]    01FB: 7C A2                                 JL      REPETIR10
+[  92]    01FD: 83 FF 00                              CMP     DI,0
+[  93]    0200: 7C 02                                 JL      TERMINAR
+[  94]    0202: EB F0                                 JMP     LIMPIAR
+[  95]    0204:                                       TERMINAR:
+[  96]    0204: CB                                    RET
+[  97]        :                                       INICIO  ENDP
+[  98]        :                                       CODIGO  ENDS
+[  99]        :                                       END     INICIO
+[ 100]        :                                       
+ 
+===================================================================================================
+ 
+EXE HEADER - bytes from 0000 to 01FF inclusive.
+
+0000: 4D      -   exe signature (M)
+0001: 5A      -   exe signature (Z)
+0002: 05      -   bytes on last page (l.byte)
+0003: 00      -   bytes on last page (h.byte)
+0004: 03      -   512 byte pages in file (l.byte)
+0005: 00      -   512 byte pages in file (h.byte)
+0006: 01      -   relocations (l.byte)
+0007: 00      -   relocations (h.byte)
+0008: 20      -   paragraphs in header (l.byte)
+0009: 00      -   paragraphs in header (h.byte)
+000A: 00      -   minimum memory (l.byte)
+000B: 00      -   minimum memory (h.byte)
+000C: FF      -   maximum memory (l.byte)
+000D: FF      -   maximum memory (h.byte)
+000E: 05      -   SS - stack segment (l.byte)
+000F: 00      -   SS - stack segment (h.byte)
+0010: 40      -   SP - stack pointer (l.byte)
+0011: 01      -   SP - stack pointer (h.byte)
+0012: F1      -   check sum (l.byte)
+0013: B8      -   check sum (h.byte)
+0014: 00      -   IP - instruction pointer (l.byte)
+0015: 00      -   IP - instruction pointer (h.byte)
+0016: 19      -   CS - code segment (l.byte)
+0017: 00      -   CS - code segment (h.byte)
+0018: 1E      -   relocation table adress (l.byte)
+0019: 00      -   relocation table adress (h.byte)
+001A: 00      -   overlay number (l.byte)
+001B: 00      -   overlay number (h.byte)
+001C: 01      -   signature (l.byte)
+001D: 00      -   signature (h.byte)
+001E: 06      -   relocation table - offset inside segment (l.byte)
+001F: 00      -   relocation table - offset inside segment (h.byte)
+0020: 19      -   relocation table - segment anchor (l.byte)
+0021: 00      -   relocation table - segment anchor (h.byte)
+0022 to 01FF  -   reserved relocation area  (00) 
+
+
+
+
+===================================================================================================

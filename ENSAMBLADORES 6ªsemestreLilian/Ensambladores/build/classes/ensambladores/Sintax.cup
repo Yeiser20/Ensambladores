@@ -1,0 +1,77 @@
+package ensambladores;
+
+import java_cup.runtime.Symbol;
+
+parser code
+{:
+    private Symbol s;
+    
+    public void syntax_error(Symbol s){
+        this.s = s;
+    }
+
+    public Symbol getS(){
+        return this.s;
+}
+:};
+
+terminal Pseudoinstruccion_D_B,
+    Pseudoinstruccion_D_W,
+    Pseudoinstruccion_Dup_0,
+    Pseudoinstruccion_Dup_D,
+    Pseudoinstruccion_Dup_Caracter,
+    Pseudoinstruccion_Dup_H,
+    Constante_Numerica_D,
+    Constante_Numerica_H,
+    Constante_Caracter_CS,
+    Constante_Caracter_CD,
+    Pseudoinstruccion_S_S,
+    Pseudoinstruccion_D_S,
+    Pseudoinstruccion_C_S,
+    Pseudoinstruccion_B,
+    Pseudoinstruccion_W,
+    Pseudoinstruccion_E,
+    Pseudoinstruccion,
+    Simbolo,
+    Instruccion,
+    Registro,
+    Linea,
+    ERROR
+
+non terminal INICIO;//, SENTENCIA, DECLARACION;
+
+start with INICIO;
+
+INICIO ::= 
+    Pseudoinstruccion_S_S |
+    Pseudoinstruccion_D_W |
+    Pseudoinstruccion_Dup_Caracter |
+    Pseudoinstruccion_E
+;
+/*
+SENTENCIA ::= 
+    SENTENCIA DECLARACION |
+    DECLARACION |
+    SENTENCIA IF | 
+    IF |
+    SENTENCIA IF_ELSE |
+    IF_ELSE |
+    SENTENCIA WHILE |
+    WHILE |
+    SENTENCIA DO_WHILE
+    DO_WHILE |
+    SENTENCIA FOR |
+    FOR
+;
+DECLARACION ::= 
+    T_dato Identificador P_coma | 
+    T_dato Identificador Op_atribucion Numero P_coma |
+    T_dato Identificador Igual Numero P_coma |
+    T_dato Identificador Op_incremento P_coma | 
+    T_dato Op_incremento Identificador P_coma | 
+    Cadena Identificador Op_atribucion Comillas Comillas P_coma |
+    Cadena Identificador Igual Comillas Comillas P_coma |
+    Cadena Identificador Op_atribucion Comillas Identificador Comillas P_coma |
+    Cadena Identificador Igual Comillas Identificador Comillas P_coma
+;
+*/

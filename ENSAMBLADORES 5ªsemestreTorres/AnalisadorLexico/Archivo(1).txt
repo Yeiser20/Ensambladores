@@ -1,0 +1,10 @@
+Validacion			Sentencia
+pkey db "press any key...$"
+var1 db 'hola'
+tecla db 0
+Vtecla BD 0
+tecla db 0
+simbolo db 045
+simbolo db 45
+simbolo db 45
+msg db "hello world $"

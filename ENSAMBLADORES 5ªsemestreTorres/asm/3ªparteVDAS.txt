@@ -1,0 +1,15 @@
+MEMORia:[BX+SI],[BX+DI],[BP+SI],[BP+DI],[BX+SI+D8],[BX+SI+d8],[BX+DI+d8],[BP+DI+d8],[SI+d8],[DI+d8],[BP+d8],[BX+d8],[SI+d16],[DI+d16],[BP+d16],[BX+d16]
+REGISTROS: AX, BX, CX, DX, AH, AL, BL, BH, CH, CL, DH, DL, DI, SI, BP, SP;
+sregistro: DS, ES, SS, and only as second operand: CS.
+immediate: 5, -24, 3Fh, 10001101b, etc
+
+"XCHG"{(memoria|registro) (registro|memoria) (registro|registro)}
+"Lds" {(registro|memoria)}
+"Imul"{(registro|memoria)}
+"Pop" {(registro|sregistro) (registro|memoria)}
+"Int" {(immediato)}
+"Cmp" {(registro|memoria) (memoria|registro) (registro|registro) (memoria|inmediato)(registro|inmediato)}
+"Les" {(registro|memoria)}
+"Xor" {(memoria|registro) (registro|memoria) (registro|registro) (memoria|inmediato) (registro|inmediato)}
+
+

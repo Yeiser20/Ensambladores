@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<jnlp href="launch.jnlp" spec="1.0+">
+    <information>
+        <title>Ensambladores</title>
+        <vendor>Vanessa Sandoval</vendor>
+        <homepage href=""/>
+        <description>Ensambladores</description>
+        <description kind="short">Ensambladores</description>
+    </information>
+    <update check="always"/>
+    <resources>
+        <j2se version="1.8+"/>
+        <jar href="Ensambladores.jar" main="true"/>
+    <jar href="lib/JFlex.jar"/>
+<jar href="lib/java-cup-11a.jar"/>
+<jar href="lib/java_cup.jar"/>
+</resources>
+    <application-desc main-class="Proyecto.PEnsambladores">
+    </application-desc>
+</jnlp>

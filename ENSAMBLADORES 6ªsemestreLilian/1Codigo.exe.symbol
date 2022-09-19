@@ -1,0 +1,23 @@
+< THE SYMBOL TABLE >  1Codigo.exe  --  emu8086 assembler version: 4.08 
+===================================================================================================
+Name                     	Offset    	Size      	Type      	Segment   
+===================================================================================================
+STACK                    	00000     	-5        	SEGMENT   	(ITSELF)  
+DATA                     	00010     	-5        	SEGMENT   	(ITSELF)  
+NOMBRE                   	00000     	1         	VAR       	DATA      
+PAPELLIDO                	0000D     	1         	VAR       	DATA      
+SAPELLIDO                	00016     	1         	VAR       	DATA      
+ENCUENTRA                	0001D     	1         	VAR       	DATA      
+PROGRAMA                 	00021     	1         	VAR       	DATA      
+FLUYE                    	0002B     	1         	VAR       	DATA      
+POSIBLE                  	0003F     	2         	VAR       	DATA      
+QUIZA                    	000C9     	1         	VAR       	DATA      
+SEMANA                   	000CA     	2         	VAR       	DATA      
+CODE                     	0001D     	-5        	SEGMENT   	(ITSELF)  
+LETRA                    	00004     	-1        	LABEL     	CODE      
+PINTURA                  	00006     	-1        	LABEL     	CODE      
+LLAMADO                  	0000F     	-1        	NEAR      	          
+===================================================================================================
+[ 17/02/2022  --  08:21:05 p. m. ] 
+< END >
+ 

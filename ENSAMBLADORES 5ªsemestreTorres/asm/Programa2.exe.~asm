@@ -1,0 +1,35 @@
+
+include 'emu8086.inc'
+
+DATA SEGMENT
+
+MENSAJE DB "$"
+MSG01 DB "-------------MENU-----------...$"
+MSG02 DB "    1.- INSERTAR VALORES...$"
+MSG03 DB "    2.- ELIMINAR...$"
+MSG04 DB "    3.- SALIR...$"
+MSG05 DB "    SELECCIONA LA OPCION:  $"
+NUM DB 40 DUP(' '),'$'
+RESPUESTA DB 40 DUP(' '),'$'
+ARRAY DB 10 dup(0)
+; add your code here
+
+ENDS
+
+STACK SEGMENT
+DW 128 DUP(0)
+
+ENDS
+
+
+CODE segment
+
+ends
+
+ret
+
+
+
+
+
+

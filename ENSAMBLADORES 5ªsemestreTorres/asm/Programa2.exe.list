@@ -1,0 +1,121 @@
+EMU8086 GENERATED LISTING. MACHINE CODE <- SOURCE.
+ 
+Programa2.exe -- emu8086 assembler version: 4.08  
+ 
+[ 08/09/2021  --  10:15:10 p. m. ] 
+ 
+===================================================================================================
+[LINE]     LOC: MACHINE CODE                          SOURCE
+===================================================================================================
+ 
+[   1]        :                                       
+[   2]        :                                       include 'emu8086.inc'
+[   3]        :                                       
+[   4]        :                                       DATA SEGMENT
+[   5]        :                                       
+[   6]    0000: 24                                    MENSAJE DB "$"
+[   7]    0001: 2D 2D 2D 2D 2D 2D 2D 2D 2D 2D 2D 2D   MSG01 DB "-------------MENU-----------...$"
+                2D 4D 45 4E 55 2D 2D 2D 2D 2D 2D 2D 
+                2D 2D 2D 2D 2E 2E 2E 24             
+[   8]    0021: 20 20 20 20 31 2E 2D 20 49 4E 53 45   MSG02 DB "    1.- INSERTAR VALORES...$"
+                52 54 41 52 20 56 41 4C 4F 52 45 53 
+                2E 2E 2E 24                         
+[   9]    003D: 20 20 20 20 32 2E 2D 20 45 4C 49 4D   MSG03 DB "    2.- ELIMINAR...$"
+                49 4E 41 52 2E 2E 2E 24             
+[  10]    0051: 20 20 20 20 33 2E 2D 20 53 41 4C 49   MSG04 DB "    3.- SALIR...$"
+                52 2E 2E 2E 24                      
+[  11]    0062: 20 20 20 20 53 45 4C 45 43 43 49 4F   MSG05 DB "    SELECCIONA LA OPCION:  $"
+                4E 41 20 4C 41 20 4F 50 43 49 4F 4E 
+                3A 20 20 24                         
+[  12]    007E: 20 20 20 20 20 20 20 20 20 20 20 20   NUM DB 40 DUP(' '),'$'
+                20 20 20 20 20 20 20 20 20 20 20 20 
+                20 20 20 20 20 20 20 20 20 20 20 20 
+                20 20 20 20 24                      
+[  13]    00A7: 20 20 20 20 20 20 20 20 20 20 20 20   RESPUESTA DB 40 DUP(' '),'$'
+                20 20 20 20 20 20 20 20 20 20 20 20 
+                20 20 20 20 20 20 20 20 20 20 20 20 
+                20 20 20 20 24                      
+[  14]    00D0: 00 00 00 00 00 00 00 00 00 00         ARRAY DB 10 dup(0)
+[  15]        :                                       ; add your code here
+[  16]        :                                       
+[  17]        :                                       ENDS
+[  18]        :                                       
+[  19]        :                                       STACK SEGMENT
+[  20]    00E0: 00 00 00 00 00 00 00 00 00 00 00 00   DW 128 DUP(0)
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00 00 00 00 00 00 00 00 00 
+                00 00 00 00                         
+[  21]        :                                       
+[  22]        :                                       ENDS
+[  23]        :                                       
+[  24]        :                                       
+[  25]        :                                       CODE segment
+[  26]        :                                       
+[  27]        :                                       ends
+[  28]        :                                       
+[  29]    01E0: C3                                    ret
+[  30]        :                                       
+[  31]        :                                       
+[  32]        :                                       
+[  33]        :                                       
+[  34]        :                                       
+[  35]        :                                       
+ 
+===================================================================================================
+ 
+EXE HEADER - bytes from 0000 to 01FF inclusive.
+
+0000: 4D      -   exe signature (M)
+0001: 5A      -   exe signature (Z)
+0002: E1      -   bytes on last page (l.byte)
+0003: 01      -   bytes on last page (h.byte)
+0004: 02      -   512 byte pages in file (l.byte)
+0005: 00      -   512 byte pages in file (h.byte)
+0006: 00      -   relocations (l.byte)
+0007: 00      -   relocations (h.byte)
+0008: 20      -   paragraphs in header (l.byte)
+0009: 00      -   paragraphs in header (h.byte)
+000A: 00      -   minimum memory (l.byte)
+000B: 00      -   minimum memory (h.byte)
+000C: FF      -   maximum memory (l.byte)
+000D: FF      -   maximum memory (h.byte)
+000E: 0E      -   SS - stack segment (l.byte)
+000F: 00      -   SS - stack segment (h.byte)
+0010: 00      -   SP - stack pointer (l.byte)
+0011: 01      -   SP - stack pointer (h.byte)
+0012: 0F      -   check sum (l.byte)
+0013: 11      -   check sum (h.byte)
+0014: 00      -   IP - instruction pointer (l.byte)
+0015: 00      -   IP - instruction pointer (h.byte)
+0016: 1E      -   CS - code segment (l.byte)
+0017: 00      -   CS - code segment (h.byte)
+0018: 1E      -   relocation table adress (l.byte)
+0019: 00      -   relocation table adress (h.byte)
+001A: 00      -   overlay number (l.byte)
+001B: 00      -   overlay number (h.byte)
+001C: 01      -   signature (l.byte)
+001D: 00      -   signature (h.byte)
+001E to 01FF  -   reserved relocation area  (00) 
+
+
+
+
+===================================================================================================

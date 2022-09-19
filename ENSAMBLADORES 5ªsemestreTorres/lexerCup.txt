@@ -1,0 +1,32 @@
+package analisisensamblador;
+import java_cup.runtime.Symbol;
+%%
+%class LexerCup
+%type java_cup.runtime.Symbol
+
+%cup
+%full
+%line
+%char
+
+espacios=[ ,\t,\r,\n]+
+
+%{ 
+    private Symbol symbol(int type, Object value){
+        return new Symbol(type, yyline, yycolumn, value);
+    }
+    private Symbol symbol(int type){
+        return new Symbol(type, yyline, yycolumn);
+    }
+%}
+%%
+/*Separadores*/
+
+{espacios} {/*Ignore*/}
+(";"(.)*) {/*Ignore*/}
+
+("data segment") {return new Symbol(sym.Pseudoinstruccion, yychar, yyline, yytext());}
+("stack segment") {return new Symbol(sym.Pseudoinstruccion, yychar, yyline, yytext());}
+("ends") {return new Symbol(sym.Pseudoinstruccion, yychar, yyline, yytext());}
+("ret") {return new Symbol(sym.Pseudoinstruccion, yychar, yyline, yytext());}
+ . {return new Symbol(sym.ERROR, yychar, yyline, yytext());}

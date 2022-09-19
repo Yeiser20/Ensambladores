@@ -1,0 +1,20 @@
+< THE SYMBOL TABLE >  Programa2.exe  --  emu8086 assembler version: 4.08 
+===================================================================================================
+Name                     	Offset    	Size      	Type      	Segment   
+===================================================================================================
+DATA                     	00000     	-5        	SEGMENT   	(ITSELF)  
+MENSAJE                  	00000     	1         	VAR       	DATA      
+MSG01                    	00001     	1         	VAR       	DATA      
+MSG02                    	00021     	1         	VAR       	DATA      
+MSG03                    	0003D     	1         	VAR       	DATA      
+MSG04                    	00051     	1         	VAR       	DATA      
+MSG05                    	00062     	1         	VAR       	DATA      
+NUM                      	0007E     	1         	VAR       	DATA      
+RESPUESTA                	000A7     	1         	VAR       	DATA      
+ARRAY                    	000D0     	1         	VAR       	DATA      
+STACK                    	0000E     	-5        	SEGMENT   	(ITSELF)  
+CODE                     	0001E     	-5        	SEGMENT   	(ITSELF)  
+===================================================================================================
+[ 08/09/2021  --  10:15:10 p. m. ] 
+< END >
+ 
